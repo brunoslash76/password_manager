@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 from random import choice, randint, shuffle
 import pyperclip
+import json
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def generate_password():
@@ -21,28 +22,58 @@ def generate_password():
     pyperclip.copy(password)
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
+def save_file(data):
+    with open("data.json", "w") as data_file:
+        json.dump(data, data_file, indent=4)
+
+def find_password():
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+            search_keyword = website_input.get()
+
+            if not search_keyword:
+                raise ValueError('Empty String')
+
+            data_dict = data[search_keyword]
+
+            messagebox.showinfo(title=search_keyword, message=f"E-mail: {data_dict['email']}\nPassword: {data_dict['password']}")
+
+    except KeyError:
+        messagebox.showerror(title=f"No entry for {search_keyword}", message=f"The website {search_keyword} doesn't exists")
+    except FileNotFoundError:
+        messagebox.showerror(title="File not found", message="File was not found, please restart the application")
+    except ValueError:
+        messagebox.showerror(title="Field error", message="Field Website must contain a keyword")
+
 def save():
-  website = website_input.get()
-  email_username = email_username_input.get()
-  password = password_input.get()
-  formated_credentials = f"{website} | {email_username} | {password}"
-  
+    website = website_input.get()
+    email_username = email_username_input.get()
+    password = password_input.get()
+    formated_credentials = f"{website} | {email_username} | {password}"
+    
+    new_data = {
+        website: {
+        "email": email_username,
+        "password": password
+        }
+    }
 
-  messagebox.OK()
-  
-
-  if len(website) == 0 or len(email_username) == 0 or len(password) == 0:
-    messagebox.showinfo(title="Oopss", message="Don't let any input empty")
-  else:
-    is_ok = messagebox.askokcancel(title=website, message=f"These are the details you entered: \nEmail: {email_username}\nPassword: {password}\n Is it OK to save it?")
-    if is_ok:
-      website_input.delete(0, END)
-      email_username_input.delete(0, END)
-      password_input.delete(0, END)
-
-      with open("data.txt", "a") as data_file:
-        data_file.write(formated_credentials)
-        website_input.focus()
+    if len(website) == 0 or len(email_username) == 0 or len(password) == 0:
+        messagebox.showinfo(title="Oopss", message="Don't let any input empty")
+    else:
+        try: 
+            with open("data.json", "r") as data_file:
+                data = json.load(data_file)
+        except FileNotFoundError:
+            save_file(new_data)
+        else:
+            data.update(new_data)
+            save_file(data)
+        finally:
+            website_input.delete(0, END)
+            email_username_input.delete(0, END)
+            password_input.delete(0, END)
 
 # ---------------------------- UI SETUP ------------------------------- #
 window = Tk()
@@ -62,11 +93,21 @@ canvas.grid(column=1, row=0)
 website_label = Label(text="Website:")
 website_label.grid(column="0", row=1)
 
-#WEBSITE INPUT
+# WEBSITE INPUT
 website_input = Entry()
 website_input.config(width=35)
 website_input.grid(column=1, row=1, columnspan=2)
 website_input.focus()
+
+# SEARCH BUTTON
+def search(): 
+    print("search")
+    find_password()
+
+search_button = Button(text="Search", width=10)
+search_button.config(command=search)
+search_button.grid(column=2, row=1)
+
 
 # EMAIL / USERNAME LABEL ----------------------------
 email_username_label = Label(text="Email/Username:")
@@ -87,20 +128,22 @@ password_input.config(width=35)
 password_input.grid(column=1, row=3, columnspan=2)
 
 # GENERATE PASSWORD BUTTON ----------------------------
-def generate_password():
-  generate_password()
+def generate_password_click():
+    generate_password()
 
-generate_password_button = Button(text="Generate Password")
-generate_password_button.config(command=generate_password)
+generate_password_button = Button(text="Generate Password", width=10)
+generate_password_button.config(command=generate_password_click)
 generate_password_button.grid(column=2, row=3)
 
 # ADD CREDENTIALS ----------------------------
 def add_credentials():
-  save()
+    save()
 
 add_credentials_button = Button(text="Add")
 add_credentials_button.config(width=33, command=add_credentials)
 add_credentials_button.grid(column=1, row=4, columnspan=2)
+
+
 
 
 window.mainloop()
